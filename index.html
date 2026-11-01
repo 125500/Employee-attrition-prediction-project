@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Employee Attrition Predictor</title>
+<style>
+  :root {
+    --bg: #f5f6fa; --card: #ffffff; --text: #1d2433; --muted: #667085;
+    --border: #d9dde7; --accent: #3b5bdb;
+    --low: #2f9e44; --med: #f08c00; --high: #e03131;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171f; --card: #1d212c; --text: #e8eaf0; --muted: #98a2b3; --border: #343a4a; --accent: #748ffc; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--text); padding: 24px 16px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+  input, select { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+                  background: var(--bg); color: var(--text); font-size: .95rem; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  button { margin-top: 18px; width: 100%; padding: 12px; border: 0; border-radius: 8px;
+           background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: wait; }
+  #result { margin-top: 20px; display: none; }
+  .score { font-size: 2.4rem; font-weight: 700; }
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 999px; color: #fff; font-weight: 600; margin-left: 8px; font-size: .9rem; }
+  .bar { height: 12px; border-radius: 6px; background: var(--border); overflow: hidden; margin-top: 10px; }
+  .bar > div { height: 100%; width: 0; transition: width .4s; }
+  .error { color: var(--high); margin-top: 16px; display: none; }
+  .note { color: var(--muted); font-size: .8rem; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Employee Attrition Predictor</h1>
+  <p class="sub">Fill in the employee details to estimate the risk of leaving.</p>
+
+  <div class="card">
+    <form id="form" class="grid">
+      <div><label for="Age">Age</label><input id="Age" type="number" min="18" max="65" value="32" required></div>
+      <div><label for="MonthlyIncome">Monthly income</label><input id="MonthlyIncome" type="number" min="1000" value="4900" required></div>
+
+      <div><label for="Department">Department</label>
+        <select id="Department">
+          <option>Research &amp; Development</option><option>Sales</option><option>Human Resources</option>
+        </select></div>
+      <div><label for="JobRole">Job role</label>
+        <select id="JobRole">
+          <option>Sales Executive</option><option>Research Scientist</option><option>Laboratory Technician</option>
+          <option>Manufacturing Director</option><option>Healthcare Representative</option><option>Manager</option>
+          <option>Sales Representative</option><option>Research Director</option><option>Human Resources</option>
+        </select></div>
+
+      <div><label for="OverTime">Works overtime?</label>
+        <select id="OverTime"><option>No</option><option>Yes</option></select></div>
+      <div><label for="BusinessTravel">Business travel</label>
+        <select id="BusinessTravel">
+          <option value="Travel_Rarely">Rarely</option><option value="Travel_Frequently">Frequently</option><option value="Non-Travel">None</option>
+        </select></div>
+
+      <div><label for="MaritalStatus">Marital status</label>
+        <select id="MaritalStatus"><option>Single</option><option selected>Married</option><option>Divorced</option></select></div>
+      <div><label for="DistanceFromHome">Distance from home (km)</label><input id="DistanceFromHome" type="number" min="1" max="50" value="7" required></div>
+
+      <div><label for="JobSatisfaction">Job satisfaction (1 low – 4 high)</label>
+        <select id="JobSatisfaction"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
+      <div><label for="WorkLifeBalance">Work-life balance (1 bad – 4 best)</label>
+        <select id="WorkLifeBalance"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
+
+      <div><label for="TotalWorkingYears">Total working years</label><input id="TotalWorkingYears" type="number" min="0" max="45" value="10" required></div>
+      <div><label for="YearsAtCompany">Years at company</label><input id="YearsAtCompany" type="number" min="0" max="45" value="5" required></div>
+
+      <div><label for="YearsSinceLastPromotion">Years since last promotion</label><input id="YearsSinceLastPromotion" type="number" min="0" max="20" value="1" required></div>
+      <div></div>
+    </form>
+    <button id="btn" type="submit" form="form">Predict attrition risk</button>
+    <div class="error" id="error"></div>
+
+    <div id="result">
+      <div><span class="score" id="pct">0%</span><span class="badge" id="level"></span></div>
+      <div class="bar"><div id="fill"></div></div>
+      <p class="note">This is a risk estimate, not a certainty. Use it to start a conversation, not to make decisions about a person.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Fields not in the form get typical default values (similar to the dataset's common values)
+  const DEFAULTS = {
+    DailyRate: 800, Education: 3, EducationField: "Life Sciences", EnvironmentSatisfaction: 3,
+    Gender: "Male", HourlyRate: 66, JobInvolvement: 3, JobLevel: 2, MonthlyRate: 14200,
+    NumCompaniesWorked: 2, PercentSalaryHike: 14, PerformanceRating: 3, RelationshipSatisfaction: 3,
+    StockOptionLevel: 1, TrainingTimesLastYear: 3, YearsInCurrentRole: 3, YearsWithCurrManager: 3
+  };
+  const NUMERIC = ["Age","MonthlyIncome","DistanceFromHome","JobSatisfaction","WorkLifeBalance",
+                   "TotalWorkingYears","YearsAtCompany","YearsSinceLastPromotion"];
+  const TEXT = ["Department","JobRole","OverTime","BusinessTravel","MaritalStatus"];
+  const COLORS = { Low: "var(--low)", Medium: "var(--med)", High: "var(--high)" };
+
+  const form = document.getElementById("form");
+  const btn = document.getElementById("btn");
+  const errBox = document.getElementById("error");
+  const result = document.getElementById("result");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errBox.style.display = "none";
+    const payload = { ...DEFAULTS };
+    NUMERIC.forEach(k => payload[k] = parseInt(document.getElementById(k).value, 10));
+    TEXT.forEach(k => payload[k] = document.getElementById(k).value);
+
+    btn.disabled = true; btn.textContent = "Predicting...";
+    try {
+      const res = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Invalid input, please check the values.");
+      show(data);
+    } catch (err) {
+      result.style.display = "none";
+      errBox.textContent = err.message;
+      errBox.style.display = "block";
+    } finally {
+      btn.disabled = false; btn.textContent = "Predict attrition risk";
+    }
+  });
+
+  function show(data) {
+    const pct = Math.round(data.attrition_probability * 100);
+    document.getElementById("pct").textContent = pct + "%";
+    const lvl = document.getElementById("level");
+    lvl.textContent = data.risk_level + " risk";
+    lvl.style.background = COLORS[data.risk_level];
+    const fill = document.getElementById("fill");
+    fill.style.background = COLORS[data.risk_level];
+    fill.style.width = pct + "%";
+    result.style.display = "block";
+  }
+</script>
+</body>
+</html>
