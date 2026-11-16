@@ -1,43 +1,42 @@
 # Employee Attrition Prediction
 
-Predict which employees are likely to leave a company, explain why, and serve the
-predictions through a FastAPI endpoint so HR can act early.
+A machine learning project that predicts which employees are likely to leave a
+company, explains the main drivers of attrition, and serves predictions through
+a FastAPI web app so HR can act early.
 
-## Setup
-```bash
-python -m venv venv
-venv\Scripts\activate          # Windows
-source venv/bin/activate       # Mac/Linux
-pip install -r requirements.txt
-```
+## Problem
+Losing employees is costly (hiring, training, lost productivity). The goal is to
+identify employees at high risk of leaving, using HR data such as age, job role,
+overtime, income, and satisfaction scores, and to show *why* each prediction was made.
 
-## Data
-Download the IBM HR Analytics Employee Attrition dataset from Kaggle and save it as:
-`data/WA_Fn-UseC_-HR-Employee-Attrition.csv`
+## Dataset
+- **Source:** IBM HR Analytics Employee Attrition & Performance (Kaggle)
+- **Size:** 1,470 employees, 35 features
+- **Target:** `Attrition` (Yes/No), about 16% Yes, so the classes are imbalanced
+- **Note:** this is a synthetic dataset created by IBM, so findings are illustrative, not real-world HR conclusions.
 
-## Run
-## How to run (Python 3.13 tested)
-
-```bash
-python -m venv venv
-venv\Scripts\activate        # Mac/Linux: source venv/bin/activate
-pip install -r requirements.txt
-python -m src.train          # trains the model (about a minute)
-python -m src.explain        # optional: SHAP plots in reports/
-uvicorn api.main:app --reload
-```
-Open http://127.0.0.1:8000 in the browser.
-Run all commands from the project root (the folder containing `api/` and `src/`).
-
-## Project structure
-```
-data/        raw dataset (not committed)
-notebooks/   EDA and experiments
-src/         config, training code
-api/         FastAPI app
-models/      saved pipeline
-reports/     plots and results
-```
+## Approach
+1. **EDA** (`notebooks/`): distributions, attrition rate by department, overtime, income, etc.
+2. **Preprocessing:** drop constant columns, encode categoricals, scale numerics, all inside one sklearn `Pipeline`.
+3. **Imbalance handling:** <class weights / SMOTE / threshold tuning, whichever you used>.
+4. **Models compared:** <Logistic Regression, Random Forest, ... >.
+5. **Evaluation:** recall, precision, F1, and ROC-AUC (accuracy alone is misleading with imbalanced classes).
+6. **Explainability:** SHAP summary plots for global and per-employee explanations.
+7. **Deployment:** FastAPI app with a simple HTML frontend.
 
 ## Results
-_(fill in after training: model comparison table, SHAP plots, key findings)_
+
+| Model | Accuracy | Precision | Recall | ROC-AUC |
+|---|---|---|---|---|
+| <model 1> | <> | <> | <> | <> |
+| <model 2> | <> | <> | <> | <> |
+
+**Final model:** <name>, chosen because <reason>.
+
+**Key findings (from SHAP):**
+- <e.g. overtime is the strongest predictor of attrition>
+- <e.g. low monthly income and few years at company increase risk>
+
+![SHAP summary](reports/shap_summary.png)
+
+## Project structure
